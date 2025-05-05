@@ -1,0 +1,1190 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO; // Для работы с файлами
+
+namespace SentenceGenerator
+{
+    public partial class Form1 : Form
+    {
+        // Словари для хранения слов по категориям
+        private Dictionary<string, List<string>> wordDatabase = new Dictionary<string, List<string>>();
+        // Список шаблонов
+        private List<string> templates = new List<string>();
+
+        // Элементы управления формы
+        private Label lblTemplates;
+        private ComboBox cmbTemplates;
+        private Label lblGeneratedSentence;
+        private TextBox txtGeneratedSentence;
+        private Button btnGenerate;
+
+        // Элементы управления для управления шаблонами
+        private GroupBox grpTemplateManagement;
+        private Label lblNewTemplate;
+        private TextBox txtNewTemplate;
+        private Button btnAddTemplate;
+        private Button btnEditTemplate;
+        private Button btnDeleteTemplate;
+        private ListBox lstTemplates;
+
+        // Элементы управления для управления словами
+        private GroupBox grpWordManagement;
+        private Label lblWordCategory;
+        private ComboBox cmbWordCategory;
+        private Label lblNewWord;
+        private TextBox txtNewWord;
+        private Button btnAddWord;
+        private ListBox lstWords;
+        private Button btnLoadWords;
+
+        private Random random = new Random();
+
+        public Form1()
+        {
+            InitializeComponent();
+            InitializeCustomComponents();
+            LoadWordDatabase("words.txt"); // Загрузка слов из файла при запуске
+            LoadTemplates("templates.txt"); // Загрузка шаблонов из файла при запуске
+            UpdateTemplateComboBox();
+            UpdateWordListBox();
+            UpdateTemplateListBox();
+        }
+
+        private void InitializeCustomComponents()
+        {
+            // Основные элементы генерации
+            lblTemplates = new Label();
+            lblTemplates.Text = "Выберите шаблон:";
+            lblTemplates.Location = new Point(20, 20);
+            lblTemplates.AutoSize = true;
+            this.Controls.Add(lblTemplates);
+
+            cmbTemplates = new ComboBox();
+            cmbTemplates.Location = new Point(20, 45);
+            cmbTemplates.Width = 200;
+            this.Controls.Add(cmbTemplates);
+
+            btnGenerate = new Button();
+            btnGenerate.Text = "Сгенерировать";
+            btnGenerate.Location = new Point(230, 45);
+            btnGenerate.Click += BtnGenerate_Click;
+            this.Controls.Add(btnGenerate);
+
+            lblGeneratedSentence = new Label();
+            lblGeneratedSentence.Text = "Сгенерированное предложение:";
+            lblGeneratedSentence.Location = new Point(20, 90);
+            lblGeneratedSentence.AutoSize = true;
+            this.Controls.Add(lblGeneratedSentence);
+
+            txtGeneratedSentence = new TextBox();
+            txtGeneratedSentence.Location = new Point(20, 115);
+            txtGeneratedSentence.Width = 500;
+            txtGeneratedSentence.Height = 50;
+            txtGeneratedSentence.Multiline = true;
+            txtGeneratedSentence.ReadOnly = true;
+            this.Controls.Add(txtGeneratedSentence);
+
+            // Группа для управления шаблонами
+            grpTemplateManagement = new GroupBox();
+            grpTemplateManagement.Text = "Управление шаблонами";
+            grpTemplateManagement.Location = new Point(20, 180);
+            grpTemplateManagement.Size = new Size(250, 250);
+            this.Controls.Add(grpTemplateManagement);
+
+            lblNewTemplate = new Label();
+            lblNewTemplate.Text = "Новый шаблон:";
+            lblNewTemplate.Location = new Point(10, 25);
+            lblNewTemplate.AutoSize = true;
+            grpTemplateManagement.Controls.Add(lblNewTemplate);
+
+            txtNewTemplate = new TextBox();
+            txtNewTemplate.Location = new Point(10, 50);
+            txtNewTemplate.Width = 230;
+            grpTemplateManagement.Controls.Add(txtNewTemplate);
+
+            btnAddTemplate = new Button();
+            btnAddTemplate.Text = "Добавить";
+            btnAddTemplate.Location = new Point(10, 80);
+            btnAddTemplate.Click += BtnAddTemplate_Click;
+            grpTemplateManagement.Controls.Add(btnAddTemplate);
+
+            btnEditTemplate = new Button();
+            btnEditTemplate.Text = "Редактировать";
+            btnEditTemplate.Location = new Point(90, 80);
+            btnEditTemplate.Click += BtnEditTemplate_Click;
+            grpTemplateManagement.Controls.Add(btnEditTemplate);
+
+            btnDeleteTemplate = new Button();
+            btnDeleteTemplate.Text = "Удалить";
+            btnDeleteTemplate.Location = new Point(170, 80);
+            btnDeleteTemplate.Click += BtnDeleteTemplate_Click;
+            grpTemplateManagement.Controls.Add(btnDeleteTemplate);
+
+            lstTemplates = new ListBox();
+            lstTemplates.Location = new Point(10, 115);
+            lstTemplates.Size = new Size(230, 120);
+            grpTemplateManagement.Controls.Add(lstTemplates);
+
+            // Группа для управления словами
+            grpWordManagement = new GroupBox();
+            grpWordManagement.Text = "Управление словами";
+            grpWordManagement.Location = new Point(280, 180);
+            grpWordManagement.Size = new Size(250, 250);
+            this.Controls.Add(grpWordManagement);
+
+            lblWordCategory = new Label();
+            lblWordCategory.Text = "Категория:";
+            lblWordCategory.Location = new Point(10, 25);
+            lblWordCategory.AutoSize = true;
+            grpWordManagement.Controls.Add(lblWordCategory);
+
+            cmbWordCategory = new ComboBox();
+            cmbWordCategory.Location = new Point(10, 50);
+            cmbWordCategory.Width = 100;
+            cmbWordCategory.SelectedIndexChanged += CmbWordCategory_SelectedIndexChanged;
+            grpWordManagement.Controls.Add(cmbWordCategory);
+            UpdateWordCategories(); // Заполнение категорий слов
+
+            lblNewWord = new Label();
+            lblNewWord.Text = "Новое слово:";
+            lblNewWord.Location = new Point(120, 25);
+            lblNewWord.AutoSize = true;
+            grpWordManagement.Controls.Add(lblNewWord);
+
+            txtNewWord = new TextBox();
+            txtNewWord.Location = new Point(120, 50);
+            txtNewWord.Width = 120;
+            grpWordManagement.Controls.Add(txtNewWord);
+
+            btnAddWord = new Button();
+            btnAddWord.Text = "Добавить слово";
+            btnAddWord.Location = new Point(10, 80);
+            btnAddWord.Click += BtnAddWord_Click;
+            grpWordManagement.Controls.Add(btnAddWord);
+
+            lstWords = new ListBox();
+            lstWords.Location = new Point(10, 115);
+            lstWords.Size = new Size(230, 90);
+            grpWordManagement.Controls.Add(lstWords);
+
+            btnLoadWords = new Button();
+            btnLoadWords.Text = "Загрузить слова из файла";
+            btnLoadWords.Location = new Point(10, 210);
+            btnLoadWords.Click += BtnLoadWords_Click;
+            grpWordManagement.Controls.Add(btnLoadWords);
+        }
+
+        // Метод для загрузки слов из файла
+        private void LoadWordDatabase(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                wordDatabase.Clear(); // Очищаем текущую базу
+                try
+                {
+                    string[] lines = File.ReadAllLines(filePath);
+                    string currentCategory = "";
+                    foreach (string line in lines)
+                    {
+                        if (line.StartsWith("[")) // Начало новой категории
+                        {
+                            currentCategory = line.Substring(1, line.Length - 2);
+                            wordDatabase[currentCategory] = new List<string>();
+                        }
+                        else if (!string.IsNullOrWhiteSpace(line) && !string.IsNullOrEmpty(currentCategory))
+                        {
+                            wordDatabase[currentCategory].Add(line.Trim());
+                        }
+                    }
+                    UpdateWordCategories();
+                    MessageBox.Show("База слов успешно загружена из " + filePath, "Загрузка слов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при загрузке базы слов: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Файл базы слов '" + filePath + "' не найден. Создайте его.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Метод для сохранения слов в файл
+        private void SaveWordDatabase(string filePath)
+        {
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(filePath))
+                {
+                    foreach (var category in wordDatabase)
+                    {
+                        writer.WriteLine("[" + category.Key + "]");
+                        foreach (var word in category.Value)
+                        {
+                            writer.WriteLine(word);
+                        }
+                    }
+                }
+                MessageBox.Show("База слов успешно сохранена в " + filePath, "Сохранение слов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка при сохранении базы слов: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Метод для загрузки шаблонов из файла
+        private void LoadTemplates(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                templates.Clear(); // Очищаем текущие шаблоны
+                try
+                {
+                    templates.AddRange(File.ReadAllLines(filePath));
+                    UpdateTemplateComboBox();
+                    UpdateTemplateListBox();
+                    MessageBox.Show("Шаблоны успешно загружены из " + filePath, "Загрузка шаблонов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при загрузке шаблонов: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Файл шаблонов '" + filePath + "' не найден. Создайте его.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Метод для сохранения шаблонов в файл
+        private void SaveTemplates(string filePath)
+        {
+            try
+            {
+                File.WriteAllLines(filePath, templates);
+                MessageBox.Show("Шаблоны успешно сохранены в " + filePath, "Сохранение шаблонов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка при сохранении шаблонов: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Обновление ComboBox с категориями слов
+        private void UpdateWordCategories()
+        {
+            cmbWordCategory.Items.Clear();
+            foreach (var category in wordDatabase.Keys)
+            {
+                cmbWordCategory.Items.Add(category);
+            }
+            if (cmbWordCategory.Items.Count > 0)
+            {
+                cmbWordCategory.SelectedIndex = 0;
+            }
+        }
+
+        // Обновление ListBox с словами текущей категории
+        private void UpdateWordListBox()
+        {
+            lstWords.Items.Clear();
+            if (cmbWordCategory.SelectedItem != null)
+            {
+                string selectedCategory = cmbWordCategory.SelectedItem.ToString();
+                if (wordDatabase.ContainsKey(selectedCategory))
+                {
+                    foreach (var word in wordDatabase[selectedCategory])
+                    {
+                        lstWords.Items.Add(word);
+                    }
+                }
+            }
+        }
+
+        // Обновление ComboBox с шаблонами
+        private void UpdateTemplateComboBox()
+        {
+            cmbTemplates.Items.Clear();
+            foreach (var template in templates)
+            {
+                cmbTemplates.Items.Add(template);
+            }
+            if (cmbTemplates.Items.Count > 0)
+            {
+                cmbTemplates.SelectedIndex = 0;
+            }
+        }
+
+        // Обновление ListBox с шаблонами
+        private void UpdateTemplateListBox()
+        {
+            lstTemplates.Items.Clear();
+            foreach (var template in templates)
+            {
+                lstTemplates.Items.Add(template);
+            }
+        }
+
+        // Обработчик кнопки "Сгенерировать"
+        private void BtnGenerate_Click(object sender, EventArgs e)
+        {
+            if (cmbTemplates.SelectedItem == null)
+            {
+                MessageBox.Show("Выберите шаблон для генерации.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string selectedTemplate = cmbTemplates.SelectedItem.ToString();
+            string generatedSentence = GenerateSentence(selectedTemplate);
+            txtGeneratedSentence.Text = generatedSentence;
+        }
+
+        // Метод для генерации предложения
+        private string GenerateSentence(string template)
+        {
+            StringBuilder generatedSentence = new StringBuilder(template);
+
+            // Поиск и замена переменных в шаблоне
+            int startIndex = generatedSentence.ToString().IndexOf("{");
+            while (startIndex != -1)
+            {
+                int endIndex = generatedSentence.ToString().IndexOf("}", startIndex);
+                if (endIndex != -1)
+                {
+                    string variable = generatedSentence.ToString().Substring(startIndex + 1, endIndex - startIndex - 1);
+                    string replacementWord = GetRandomWordByCategory(variable);
+
+                    generatedSentence.Replace("{" + variable + "}", replacementWord, startIndex, endIndex - startIndex + 1);
+
+                    startIndex = generatedSentence.ToString().IndexOf("{", startIndex + replacementWord.Length);
+                }
+                else
+                {
+                    // Неправильный формат переменной
+                    break;
+                }
+            }
+
+            return generatedSentence.ToString();
+        }
+
+        // Метод для получения случайного слова по категории
+        private string GetRandomWordByCategory(string category)
+        {
+            if (wordDatabase.ContainsKey(category) && wordDatabase[category].Count > 0)
+            {
+                int randomIndex = random.Next(wordDatabase[category].Count);
+                return wordDatabase[category][randomIndex];
+            }
+            else
+            {
+                return "[Не найдено слово для категории: " + category + "]";
+            }
+        }
+
+        // Обработчик кнопки "Добавить шаблон"
+        private void BtnAddTemplate_Click(object sender, EventArgs e)
+        {
+            string newTemplate = txtNewTemplate.Text.Trim();
+            if (!string.IsNullOrEmpty(newTemplate))
+            {
+                templates.Add(newTemplate);
+                txtNewTemplate.Clear();
+                UpdateTemplateComboBox();
+                UpdateTemplateListBox();
+                SaveTemplates("templates.txt"); // Сохраняем шаблоны
+            }
+            else
+            {
+                MessageBox.Show("Введите текст шаблона.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Обработчик кнопки "Редактировать шаблон"
+        private void BtnEditTemplate_Click(object sender, EventArgs e)
+        {
+            if (lstTemplates.SelectedItem != null)
+            {
+                int selectedIndex = lstTemplates.SelectedIndex;
+                string editedTemplate = txtNewTemplate.Text.Trim();
+                if (!string.IsNullOrEmpty(editedTemplate))
+                {
+                    templates[selectedIndex] = editedTemplate;
+                    txtNewTemplate.Clear();
+                    UpdateTemplateComboBox();
+                    UpdateTemplateListBox();
+                    SaveTemplates("templates.txt"); // Сохраняем шаблоны
+                }
+                else
+                {
+                    MessageBox.Show("Введите новый текст шаблона.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Выберите шаблон для редактирования.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Обработчик кнопки "Удалить шаблон"
+        private void BtnDeleteTemplate_Click(object sender, EventArgs e)
+        {
+            if (lstTemplates.SelectedItem != null)
+            {
+                templates.RemoveAt(lstTemplates.SelectedIndex);
+                UpdateTemplateComboBox();
+                UpdateTemplateListBox();
+                SaveTemplates("templates.txt"); // Сохраняем шаблоны
+            }
+            else
+            {
+                MessageBox.Show("Выберите шаблон для удаления.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Обработчик изменения выбранной категории слов
+        private void CmbWordCategory_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateWordListBox();
+        }
+
+        // Обработчик кнопки "Добавить слово"
+        private void BtnAddWord_Click(object sender, EventArgs e)
+        {
+            if (cmbWordCategory.SelectedItem == null)
+            {
+                MessageBox.Show("Выберите категорию слова.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string selectedCategory = cmbWordCategory.SelectedItem.ToString();
+            string newWord = txtNewWord.Text.Trim();
+
+            if (!string.IsNullOrEmpty(newWord))
+            {
+                if (wordDatabase.ContainsKey(selectedCategory))
+                {
+                    wordDatabase[selectedCategory].Add(newWord);
+                    txtNewWord.Clear();
+                    UpdateWordListBox();
+                    SaveWordDatabase("words.txt"); // Сохраняем слова
+                }
+                else
+                {
+                    // Если категория не существует, можно предложить создать ее
+                    MessageBox.Show("Категория '" + selectedCategory + "' не найдена.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Введите слово.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Обработчик кнопки "Загрузить слова из файла"
+        private void BtnLoadWords_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*";
+                openFileDialog.Title = "Выберите файл с базой слов";
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    LoadWordDatabase(openFileDialog.FileName);
+                }
+            }
+        }
+
+        // Обработчик события закрытия формы для сохранения данных
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            SaveWordDatabase("words.txt");
+            SaveTemplates("templates.txt");
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Конечно, вот проект Windows Forms на C# для генерации предложений, написанный на уровне студента, изучающего Windows Forms около 3 месяцев. Этот проект включает в себя все элементы, созданные программно, и выполняет функциональные требования, которые вы описали.
+
+Шаг 1: Создание нового проекта Windows Forms
+
+Откройте Visual Studio.
+Создайте новый проект.
+Выберите шаблон "Приложение Windows Forms (.NET Framework)" и нажмите "Далее".
+Назовите проект (например, "SentenceGenerator") и выберите местоположение. Нажмите "Создать".
+Шаг 2: Добавление элементов управления программно
+
+Откройте файл Form1.cs и замените существующий код на следующий:
+СВЕРХУ КОД
+Конечно, вот проект Windows Forms на C# для генерации предложений, написанный на уровне студента, изучающего Windows Forms около 3 месяцев. Этот проект включает в себя все элементы, созданные программно, и выполняет функциональные требования, которые вы описали.
+
+**Шаг 1: Создание нового проекта Windows Forms**
+
+1. Откройте Visual Studio.
+2. Создайте новый проект.
+3. Выберите шаблон "Приложение Windows Forms (.NET Framework)" и нажмите "Далее".
+4. Назовите проект (например, "SentenceGenerator") и выберите местоположение. Нажмите "Создать".
+
+**Шаг 2: Добавление элементов управления программно**
+
+Откройте файл `Form1.cs` и замените существующий код на следующий:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO; // Для работы с файлами
+
+namespace SentenceGenerator
+{
+    public partial class Form1 : Form
+    {
+        // Словари для хранения слов по категориям
+        private Dictionary<string, List<string>> wordDatabase = new Dictionary<string, List<string>>();
+        // Список шаблонов
+        private List<string> templates = new List<string>();
+
+        // Элементы управления формы
+        private Label lblTemplates;
+        private ComboBox cmbTemplates;
+        private Label lblGeneratedSentence;
+        private TextBox txtGeneratedSentence;
+        private Button btnGenerate;
+
+        // Элементы управления для управления шаблонами
+        private GroupBox grpTemplateManagement;
+        private Label lblNewTemplate;
+        private TextBox txtNewTemplate;
+        private Button btnAddTemplate;
+        private Button btnEditTemplate;
+        private Button btnDeleteTemplate;
+        private ListBox lstTemplates;
+
+        // Элементы управления для управления словами
+        private GroupBox grpWordManagement;
+        private Label lblWordCategory;
+        private ComboBox cmbWordCategory;
+        private Label lblNewWord;
+        private TextBox txtNewWord;
+        private Button btnAddWord;
+        private ListBox lstWords;
+        private Button btnLoadWords;
+
+        private Random random = new Random();
+
+        public Form1()
+        {
+            InitializeComponent();
+            InitializeCustomComponents();
+            LoadWordDatabase("words.txt"); // Загрузка слов из файла при запуске
+            LoadTemplates("templates.txt"); // Загрузка шаблонов из файла при запуске
+            UpdateTemplateComboBox();
+            UpdateWordListBox();
+            UpdateTemplateListBox();
+        }
+
+        private void InitializeCustomComponents()
+        {
+            // Основные элементы генерации
+            lblTemplates = new Label();
+            lblTemplates.Text = "Выберите шаблон:";
+            lblTemplates.Location = new Point(20, 20);
+            lblTemplates.AutoSize = true;
+            this.Controls.Add(lblTemplates);
+
+            cmbTemplates = new ComboBox();
+            cmbTemplates.Location = new Point(20, 45);
+            cmbTemplates.Width = 200;
+            this.Controls.Add(cmbTemplates);
+
+            btnGenerate = new Button();
+            btnGenerate.Text = "Сгенерировать";
+            btnGenerate.Location = new Point(230, 45);
+            btnGenerate.Click += BtnGenerate_Click;
+            this.Controls.Add(btnGenerate);
+
+            lblGeneratedSentence = new Label();
+            lblGeneratedSentence.Text = "Сгенерированное предложение:";
+            lblGeneratedSentence.Location = new Point(20, 90);
+            lblGeneratedSentence.AutoSize = true;
+            this.Controls.Add(lblGeneratedSentence);
+
+            txtGeneratedSentence = new TextBox();
+            txtGeneratedSentence.Location = new Point(20, 115);
+            txtGeneratedSentence.Width = 500;
+            txtGeneratedSentence.Height = 50;
+            txtGeneratedSentence.Multiline = true;
+            txtGeneratedSentence.ReadOnly = true;
+            this.Controls.Add(txtGeneratedSentence);
+
+            // Группа для управления шаблонами
+            grpTemplateManagement = new GroupBox();
+            grpTemplateManagement.Text = "Управление шаблонами";
+            grpTemplateManagement.Location = new Point(20, 180);
+            grpTemplateManagement.Size = new Size(250, 250);
+            this.Controls.Add(grpTemplateManagement);
+
+            lblNewTemplate = new Label();
+            lblNewTemplate.Text = "Новый шаблон:";
+            lblNewTemplate.Location = new Point(10, 25);
+            lblNewTemplate.AutoSize = true;
+            grpTemplateManagement.Controls.Add(lblNewTemplate);
+
+            txtNewTemplate = new TextBox();
+            txtNewTemplate.Location = new Point(10, 50);
+            txtNewTemplate.Width = 230;
+            grpTemplateManagement.Controls.Add(txtNewTemplate);
+
+            btnAddTemplate = new Button();
+            btnAddTemplate.Text = "Добавить";
+            btnAddTemplate.Location = new Point(10, 80);
+            btnAddTemplate.Click += BtnAddTemplate_Click;
+            grpTemplateManagement.Controls.Add(btnAddTemplate);
+
+            btnEditTemplate = new Button();
+            btnEditTemplate.Text = "Редактировать";
+            btnEditTemplate.Location = new Point(90, 80);
+            btnEditTemplate.Click += BtnEditTemplate_Click;
+            grpTemplateManagement.Controls.Add(btnEditTemplate);
+
+            btnDeleteTemplate = new Button();
+            btnDeleteTemplate.Text = "Удалить";
+            btnDeleteTemplate.Location = new Point(170, 80);
+            btnDeleteTemplate.Click += BtnDeleteTemplate_Click;
+            grpTemplateManagement.Controls.Add(btnDeleteTemplate);
+
+            lstTemplates = new ListBox();
+            lstTemplates.Location = new Point(10, 115);
+            lstTemplates.Size = new Size(230, 120);
+            grpTemplateManagement.Controls.Add(lstTemplates);
+
+            // Группа для управления словами
+            grpWordManagement = new GroupBox();
+            grpWordManagement.Text = "Управление словами";
+            grpWordManagement.Location = new Point(280, 180);
+            grpWordManagement.Size = new Size(250, 250);
+            this.Controls.Add(grpWordManagement);
+
+            lblWordCategory = new Label();
+            lblWordCategory.Text = "Категория:";
+            lblWordCategory.Location = new Point(10, 25);
+            lblWordCategory.AutoSize = true;
+            grpWordManagement.Controls.Add(lblWordCategory);
+
+            cmbWordCategory = new ComboBox();
+            cmbWordCategory.Location = new Point(10, 50);
+            cmbWordCategory.Width = 100;
+            cmbWordCategory.SelectedIndexChanged += CmbWordCategory_SelectedIndexChanged;
+            grpWordManagement.Controls.Add(cmbWordCategory);
+            UpdateWordCategories(); // Заполнение категорий слов
+
+            lblNewWord = new Label();
+            lblNewWord.Text = "Новое слово:";
+            lblNewWord.Location = new Point(120, 25);
+            lblNewWord.AutoSize = true;
+            grpWordManagement.Controls.Add(lblNewWord);
+
+            txtNewWord = new TextBox();
+            txtNewWord.Location = new Point(120, 50);
+            txtNewWord.Width = 120;
+            grpWordManagement.Controls.Add(txtNewWord);
+
+            btnAddWord = new Button();
+            btnAddWord.Text = "Добавить слово";
+            btnAddWord.Location = new Point(10, 80);
+            btnAddWord.Click += BtnAddWord_Click;
+            grpWordManagement.Controls.Add(btnAddWord);
+
+            lstWords = new ListBox();
+            lstWords.Location = new Point(10, 115);
+            lstWords.Size = new Size(230, 90);
+            grpWordManagement.Controls.Add(lstWords);
+
+            btnLoadWords = new Button();
+            btnLoadWords.Text = "Загрузить слова из файла";
+            btnLoadWords.Location = new Point(10, 210);
+            btnLoadWords.Click += BtnLoadWords_Click;
+            grpWordManagement.Controls.Add(btnLoadWords);
+        }
+
+        // Метод для загрузки слов из файла
+        private void LoadWordDatabase(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                wordDatabase.Clear(); // Очищаем текущую базу
+                try
+                {
+                    string[] lines = File.ReadAllLines(filePath);
+                    string currentCategory = "";
+                    foreach (string line in lines)
+                    {
+                        if (line.StartsWith("[")) // Начало новой категории
+                        {
+                            currentCategory = line.Substring(1, line.Length - 2);
+                            wordDatabase[currentCategory] = new List<string>();
+                        }
+                        else if (!string.IsNullOrWhiteSpace(line) && !string.IsNullOrEmpty(currentCategory))
+                        {
+                            wordDatabase[currentCategory].Add(line.Trim());
+                        }
+                    }
+                    UpdateWordCategories();
+                    MessageBox.Show("База слов успешно загружена из " + filePath, "Загрузка слов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при загрузке базы слов: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Файл базы слов '" + filePath + "' не найден. Создайте его.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Метод для сохранения слов в файл
+        private void SaveWordDatabase(string filePath)
+        {
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(filePath))
+                {
+                    foreach (var category in wordDatabase)
+                    {
+                        writer.WriteLine("[" + category.Key + "]");
+                        foreach (var word in category.Value)
+                        {
+                            writer.WriteLine(word);
+                        }
+                    }
+                }
+                MessageBox.Show("База слов успешно сохранена в " + filePath, "Сохранение слов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка при сохранении базы слов: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Метод для загрузки шаблонов из файла
+        private void LoadTemplates(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                templates.Clear(); // Очищаем текущие шаблоны
+                try
+                {
+                    templates.AddRange(File.ReadAllLines(filePath));
+                    UpdateTemplateComboBox();
+                    UpdateTemplateListBox();
+                    MessageBox.Show("Шаблоны успешно загружены из " + filePath, "Загрузка шаблонов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при загрузке шаблонов: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Файл шаблонов '" + filePath + "' не найден. Создайте его.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Метод для сохранения шаблонов в файл
+        private void SaveTemplates(string filePath)
+        {
+            try
+            {
+                File.WriteAllLines(filePath, templates);
+                MessageBox.Show("Шаблоны успешно сохранены в " + filePath, "Сохранение шаблонов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка при сохранении шаблонов: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Обновление ComboBox с категориями слов
+        private void UpdateWordCategories()
+        {
+            cmbWordCategory.Items.Clear();
+            foreach (var category in wordDatabase.Keys)
+            {
+                cmbWordCategory.Items.Add(category);
+            }
+            if (cmbWordCategory.Items.Count > 0)
+            {
+                cmbWordCategory.SelectedIndex = 0;
+            }
+        }
+
+        // Обновление ListBox с словами текущей категории
+        private void UpdateWordListBox()
+        {
+            lstWords.Items.Clear();
+            if (cmbWordCategory.SelectedItem != null)
+            {
+                string selectedCategory = cmbWordCategory.SelectedItem.ToString();
+                if (wordDatabase.ContainsKey(selectedCategory))
+                {
+                    foreach (var word in wordDatabase[selectedCategory])
+                    {
+                        lstWords.Items.Add(word);
+                    }
+                }
+            }
+        }
+
+        // Обновление ComboBox с шаблонами
+        private void UpdateTemplateComboBox()
+        {
+            cmbTemplates.Items.Clear();
+            foreach (var template in templates)
+            {
+                cmbTemplates.Items.Add(template);
+            }
+            if (cmbTemplates.Items.Count > 0)
+            {
+                cmbTemplates.SelectedIndex = 0;
+            }
+        }
+
+        // Обновление ListBox с шаблонами
+        private void UpdateTemplateListBox()
+        {
+            lstTemplates.Items.Clear();
+            foreach (var template in templates)
+            {
+                lstTemplates.Items.Add(template);
+            }
+        }
+
+        // Обработчик кнопки "Сгенерировать"
+        private void BtnGenerate_Click(object sender, EventArgs e)
+        {
+            if (cmbTemplates.SelectedItem == null)
+            {
+                MessageBox.Show("Выберите шаблон для генерации.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string selectedTemplate = cmbTemplates.SelectedItem.ToString();
+            string generatedSentence = GenerateSentence(selectedTemplate);
+            txtGeneratedSentence.Text = generatedSentence;
+        }
+
+        // Метод для генерации предложения
+        private string GenerateSentence(string template)
+        {
+            StringBuilder generatedSentence = new StringBuilder(template);
+
+            // Поиск и замена переменных в шаблоне
+            int startIndex = generatedSentence.ToString().IndexOf("{");
+            while (startIndex != -1)
+            {
+                int endIndex = generatedSentence.ToString().IndexOf("}", startIndex);
+                if (endIndex != -1)
+                {
+                    string variable = generatedSentence.ToString().Substring(startIndex + 1, endIndex - startIndex - 1);
+                    string replacementWord = GetRandomWordByCategory(variable);
+
+                    generatedSentence.Replace("{" + variable + "}", replacementWord, startIndex, endIndex - startIndex + 1);
+
+                    startIndex = generatedSentence.ToString().IndexOf("{", startIndex + replacementWord.Length);
+                }
+                else
+                {
+                    // Неправильный формат переменной
+                    break;
+                }
+            }
+
+            return generatedSentence.ToString();
+        }
+
+        // Метод для получения случайного слова по категории
+        private string GetRandomWordByCategory(string category)
+        {
+            if (wordDatabase.ContainsKey(category) && wordDatabase[category].Count > 0)
+            {
+                int randomIndex = random.Next(wordDatabase[category].Count);
+                return wordDatabase[category][randomIndex];
+            }
+            else
+            {
+                return "[Не найдено слово для категории: " + category + "]";
+            }
+        }
+
+        // Обработчик кнопки "Добавить шаблон"
+        private void BtnAddTemplate_Click(object sender, EventArgs e)
+        {
+            string newTemplate = txtNewTemplate.Text.Trim();
+            if (!string.IsNullOrEmpty(newTemplate))
+            {
+                templates.Add(newTemplate);
+                txtNewTemplate.Clear();
+                UpdateTemplateComboBox();
+                UpdateTemplateListBox();
+                SaveTemplates("templates.txt"); // Сохраняем шаблоны
+            }
+            else
+            {
+                MessageBox.Show("Введите текст шаблона.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Обработчик кнопки "Редактировать шаблон"
+        private void BtnEditTemplate_Click(object sender, EventArgs e)
+        {
+            if (lstTemplates.SelectedItem != null)
+            {
+                int selectedIndex = lstTemplates.SelectedIndex;
+                string editedTemplate = txtNewTemplate.Text.Trim();
+                if (!string.IsNullOrEmpty(editedTemplate))
+                {
+                    templates[selectedIndex] = editedTemplate;
+                    txtNewTemplate.Clear();
+                    UpdateTemplateComboBox();
+                    UpdateTemplateListBox();
+                    SaveTemplates("templates.txt"); // Сохраняем шаблоны
+                }
+                else
+                {
+                    MessageBox.Show("Введите новый текст шаблона.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Выберите шаблон для редактирования.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Обработчик кнопки "Удалить шаблон"
+        private void BtnDeleteTemplate_Click(object sender, EventArgs e)
+        {
+            if (lstTemplates.SelectedItem != null)
+            {
+                templates.RemoveAt(lstTemplates.SelectedIndex);
+                UpdateTemplateComboBox();
+                UpdateTemplateListBox();
+                SaveTemplates("templates.txt"); // Сохраняем шаблоны
+            }
+            else
+            {
+                MessageBox.Show("Выберите шаблон для удаления.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Обработчик изменения выбранной категории слов
+        private void CmbWordCategory_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateWordListBox();
+        }
+
+        // Обработчик кнопки "Добавить слово"
+        private void BtnAddWord_Click(object sender, EventArgs e)
+        {
+            if (cmbWordCategory.SelectedItem == null)
+            {
+                MessageBox.Show("Выберите категорию слова.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string selectedCategory = cmbWordCategory.SelectedItem.ToString();
+            string newWord = txtNewWord.Text.Trim();
+
+            if (!string.IsNullOrEmpty(newWord))
+            {
+                if (wordDatabase.ContainsKey(selectedCategory))
+                {
+                    wordDatabase[selectedCategory].Add(newWord);
+                    txtNewWord.Clear();
+                    UpdateWordListBox();
+                    SaveWordDatabase("words.txt"); // Сохраняем слова
+                }
+                else
+                {
+                    // Если категория не существует, можно предложить создать ее
+                    MessageBox.Show("Категория '" + selectedCategory + "' не найдена.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Введите слово.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Обработчик кнопки "Загрузить слова из файла"
+        private void BtnLoadWords_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*";
+                openFileDialog.Title = "Выберите файл с базой слов";
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    LoadWordDatabase(openFileDialog.FileName);
+                }
+            }
+        }
+
+        // Обработчик события закрытия формы для сохранения данных
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            SaveWordDatabase("words.txt");
+            SaveTemplates("templates.txt");
+        }
+    }
+}
+```
+
+**Шаг 3: Создание файлов данных**
+
+В папке, где находится ваш исполняемый файл (`bin/Debug` или `bin/Release`), создайте два текстовых файла:
+
+1.  **`words.txt`**: Этот файл будет содержать вашу базу слов. Формат:
+    ```
+    [категория1]
+    слово1_категории1
+    слово2_категории1
+    [категория2]
+    слово1_категории2
+    ...
+    ```
+    Пример `words.txt`:
+    ```
+    [существительное]
+    кот
+    собака
+    человек
+    дом
+    машина
+    [прилагательное]
+    красивый
+    большой
+    маленький
+    умный
+    быстрый
+    [глагол]
+    бежит
+    спит
+    ест
+    строит
+    водит
+    ```
+
+2.  **`templates.txt`**: Этот файл будет содержать ваши шаблоны предложений. Каждая строка - отдельный шаблон. Переменные в шаблоне обозначаются в фигурных скобках, например, `{существительное}`.
+    ```
+    {прилагательное} {существительное} {глагол}.
+    Я видел {прилагательное} {существительное}.
+    Наш {существительное} очень {прилагательное}.
+    ```
+
+**Объяснение кода:**
+
+1.  **`using` директивы:** Импортируем необходимые пространства имен (`System`, `System.Collections.Generic`, `System.Drawing`, `System.Linq`, `System.Text`, `System.Threading.Tasks`, `System.Windows.Forms`, `System.IO`).
+2.  **Переменные класса:**
+    *   `wordDatabase`: Словарь для хранения слов. Ключ - категория (например, "существительное"), значение - список слов этой категории.
+    *   `templates`: Список строк, хранящих шаблоны предложений.
+    *   `lblTemplates`, `cmbTemplates`, `lblGeneratedSentence`, `txtGeneratedSentence`, `btnGenerate`: Элементы управления для основной функциональности генерации.
+    *   `grpTemplateManagement`, `lblNewTemplate`, `txtNewTemplate`, `btnAddTemplate`, `btnEditTemplate`, `btnDeleteTemplate`, `lstTemplates`: Элементы управления для управления шаблонами.
+    *   `grpWordManagement`, `lblWordCategory`, `cmbWordCategory`, `lblNewWord`, `txtNewWord`, `btnAddWord`, `lstWords`, `btnLoadWords`: Элементы управления для управления словами.
+    *   `random`: Объект для генерации случайных чисел.
+3.  **Конструктор `Form1()`:**
+    *   `InitializeComponent()`: Инициализирует стандартные компоненты формы (которые мы не используем напрямую, но метод все равно нужен).
+    *   `InitializeCustomComponents()`: Наш собственный метод для создания и размещения всех элементов управления программно.
+    *   `LoadWordDatabase("words.txt")`: Загружает слова из файла при запуске.
+    *   `LoadTemplates("templates.txt")`: Загружает шаблоны из файла при запуске.
+    *   `UpdateTemplateComboBox()`, `UpdateWordListBox()`, `UpdateTemplateListBox()`: Обновляют отображение данных в соответствующих элементах управления.
+4.  **`InitializeCustomComponents()`:**
+    *   В этом методе мы создаем экземпляры всех необходимых элементов управления (`Label`, `ComboBox`, `Button`, `TextBox`, `GroupBox`, `ListBox`).
+    *   Устанавливаем их текст (`Text`), положение (`Location`), размер (`Size`, `Width`, `Height`).
+    *   Добавляем обработчики событий для кнопок (`Click`) и ComboBox (`SelectedIndexChanged`).
+    *   Добавляем все элементы управления на форму с помощью `this.Controls.Add()`. Для элементов внутри `GroupBox` используем `grpTemplateManagement.Controls.Add()` и `grpWordManagement.Controls.Add()`.
+5.  **Методы загрузки и сохранения (`LoadWordDatabase`, `SaveWordDatabase`, `LoadTemplates`, `SaveTemplates`):**
+    *   Реализуют чтение и запись данных из/в текстовые файлы. Используют классы `File` и `StreamWriter`.
+    *   Обрабатывают возможные ошибки (например, файл не найден) с помощью `try-catch`.
+6.  **Методы обновления отображения (`UpdateWordCategories`, `UpdateWordListBox`, `UpdateTemplateComboBox`, `UpdateTemplateListBox`):**
+    *   Очищают текущие элементы в ComboBox/ListBox и заполняют их данными из `wordDatabase` и `templates`.
+7.  **Обработчик `BtnGenerate_Click()`:**
+    *   Проверяет, выбран ли шаблон.
+    *   Вызывает метод `GenerateSentence()` для получения сгенерированного предложения.
+    *   Отображает результат в `txtGeneratedSentence`.
+8.  **`GenerateSentence()`:**
+    *   Принимает строку шаблона.
+    *   Использует `StringBuilder` для эффективной замены переменных.
+    *   Ищет переменные в формате `{категория}` с помощью `IndexOf`.
+    *   Извлекает имя категории.
+    *   Вызывает `GetRandomWordByCategory()` для получения случайного слова.
+    *   Заменяет переменную в шаблоне на полученное слово с помощью `Replace`.
+    *   Повторяет процесс, пока не будут найдены все переменные.
+9.  **`GetRandomWordByCategory()`:**
+    *   Принимает имя категории.
+    *   Проверяет, существует ли категория в `wordDatabase` и есть ли в ней слова.
+    *   Если да, выбирает случайный индекс и возвращает слово.
+    *   Если нет, возвращает сообщение об ошибке.
+10. **Обработчики кнопок управления шаблонами (`BtnAddTemplate_Click`, `BtnEditTemplate_Click`, `BtnDeleteTemplate_Click`):**
+    *   Реализуют добавление, редактирование и удаление шаблонов из списка `templates`.
+    *   Обновляют отображение и сохраняют шаблоны в файл.
+11. **Обработчики управления словами (`CmbWordCategory_SelectedIndexChanged`, `BtnAddWord_Click`, `BtnLoadWords_Click`):**
+    *   `CmbWordCategory_SelectedIndexChanged`: Обновляет список слов при выборе другой категории.
+    *   `BtnAddWord_Click`: Добавляет новое слово в выбранную категорию.
+    *   `BtnLoadWords_Click`: Открывает диалоговое окно для выбора файла с базой слов и вызывает `LoadWordDatabase`.
+12. **`Form1_FormClosing()`:**
+    *   Обработчик события закрытия формы. Вызывается перед закрытием окна.
+    *   Сохраняет текущую базу слов и шаблоны в файлы, чтобы данные не потерялись при выходе из приложения.
+
+**Как запустить и использовать:**
+
+1.  Запустите проект в Visual Studio (нажмите F5).
+2.  Создайте или отредактируйте файлы `words.txt` и `templates.txt` в папке с исполняемым файлом.
+3.  Приложение загрузит слова и шаблоны.
+4.  Выберите шаблон из выпадающего списка.
+5.  Нажмите кнопку "Сгенерировать".
+6.  Сгенерированное предложение появится в текстовом поле.
+7.  Используйте группы "Управление шаблонами" и "Управление словами" для добавления, редактирования и удаления шаблонов и слов.
+8.  При закрытии формы данные будут автоматически сохранены.
+
+Этот проект покрывает все ваши функциональные требования и демонстрирует базовые навыки работы с Windows Forms, такие как программное создание элементов управления, обработка событий, работа с коллекциями данных и файловый ввод/вывод.
+
+
+
+
+
+
