@@ -33,25 +33,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.IO; // Для работы с файлами
+using System.IO; // ну это уж понятно что для работы с файлами 
 
 namespace SentenceGenerator
 {
     public partial class Form1 : Form
     {
-        // Словари для хранения слов по категориям
+        // это словари для хранения слов по категориям
         private Dictionary<string, List<string>> wordDatabase = new Dictionary<string, List<string>>();
-        // Список шаблонов
+        // это список шаблонов
         private List<string> templates = new List<string>();
 
-        // Элементы управления формы
+        // это элементы управления формы
         private Label lblTemplates;
         private ComboBox cmbTemplates;
         private Label lblGeneratedSentence;
         private TextBox txtGeneratedSentence;
         private Button btnGenerate;
 
-        // Элементы управления для управления шаблонами
+        // это для элементов управления для управления шаблонами
         private GroupBox grpTemplateManagement;
         private Label lblNewTemplate;
         private TextBox txtNewTemplate;
@@ -60,7 +60,7 @@ namespace SentenceGenerator
         private Button btnDeleteTemplate;
         private ListBox lstTemplates;
 
-        // Элементы управления для управления словами
+        // это нужно для элементов управления для управления словами
         private GroupBox grpWordManagement;
         private Label lblWordCategory;
         private ComboBox cmbWordCategory;
@@ -76,8 +76,8 @@ namespace SentenceGenerator
         {
             InitializeComponent();
             InitializeCustomComponents();
-            LoadWordDatabase("words.txt"); // Загрузка слов из файла при запуске
-            LoadTemplates("templates.txt"); // Загрузка шаблонов из файла при запуске
+            LoadWordDatabase("words.txt"); // эт загрузка слов из файла при запуске
+            LoadTemplates("templates.txt"); // а это агрузка шаблонов из файла при запуске
             UpdateTemplateComboBox();
             UpdateWordListBox();
             UpdateTemplateListBox();
@@ -85,7 +85,7 @@ namespace SentenceGenerator
 
         private void InitializeCustomComponents()
         {
-            // Основные элементы генерации
+            // тут находятся основные элементы генерации
             lblTemplates = new Label();
             lblTemplates.Text = "Выберите шаблон:";
             lblTemplates.Location = new Point(20, 20);
@@ -117,7 +117,7 @@ namespace SentenceGenerator
             txtGeneratedSentence.ReadOnly = true;
             this.Controls.Add(txtGeneratedSentence);
 
-            // Группа для управления шаблонами
+            // это короче группа для управления шаблонами
             grpTemplateManagement = new GroupBox();
             grpTemplateManagement.Text = "Управление шаблонами";
             grpTemplateManagement.Location = new Point(20, 180);
@@ -158,7 +158,7 @@ namespace SentenceGenerator
             lstTemplates.Size = new Size(230, 120);
             grpTemplateManagement.Controls.Add(lstTemplates);
 
-            // Группа для управления словами
+            // группа для управления словами
             grpWordManagement = new GroupBox();
             grpWordManagement.Text = "Управление словами";
             grpWordManagement.Location = new Point(280, 180);
@@ -176,7 +176,7 @@ namespace SentenceGenerator
             cmbWordCategory.Width = 100;
             cmbWordCategory.SelectedIndexChanged += CmbWordCategory_SelectedIndexChanged;
             grpWordManagement.Controls.Add(cmbWordCategory);
-            UpdateWordCategories(); // Заполнение категорий слов
+            UpdateWordCategories(); // заполнение категорий слов
 
             lblNewWord = new Label();
             lblNewWord.Text = "Новое слово:";
@@ -194,7 +194,7 @@ namespace SentenceGenerator
             btnAddWord.Location = new Point(10, 80);
             btnAddWord.Click += BtnAddWord_Click;
             grpWordManagement.Controls.Add(btnAddWord);
-
+           
             lstWords = new ListBox();
             lstWords.Location = new Point(10, 115);
             lstWords.Size = new Size(230, 90);
@@ -207,19 +207,19 @@ namespace SentenceGenerator
             grpWordManagement.Controls.Add(btnLoadWords);
         }
 
-        // Метод для загрузки слов из файла
+        // это для загрузки слов из файла
         private void LoadWordDatabase(string filePath)
         {
             if (File.Exists(filePath))
             {
-                wordDatabase.Clear(); // Очищаем текущую базу
+                wordDatabase.Clear(); //это для очистки базы текущей 
                 try
                 {
                     string[] lines = File.ReadAllLines(filePath);
                     string currentCategory = "";
                     foreach (string line in lines)
                     {
-                        if (line.StartsWith("[")) // Начало новой категории
+                        if (line.StartsWith("[")) // тут начало новой категории
                         {
                             currentCategory = line.Substring(1, line.Length - 2);
                             wordDatabase[currentCategory] = new List<string>();
@@ -243,7 +243,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Метод для сохранения слов в файл
+        // метод для сохранения слов в файл
         private void SaveWordDatabase(string filePath)
         {
             try
@@ -267,12 +267,12 @@ namespace SentenceGenerator
             }
         }
 
-        // Метод для загрузки шаблонов из файла
+        // это метод для загрузки шаблонов из файла
         private void LoadTemplates(string filePath)
         {
             if (File.Exists(filePath))
             {
-                templates.Clear(); // Очищаем текущие шаблоны
+                templates.Clear(); // для очистки текущих шаблонов
                 try
                 {
                     templates.AddRange(File.ReadAllLines(filePath));
@@ -291,7 +291,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Метод для сохранения шаблонов в файл
+        // это нужно для сохранения шаблонов в файл
         private void SaveTemplates(string filePath)
         {
             try
@@ -305,7 +305,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обновление ComboBox с категориями слов
+        // это для бновление ComboBox с категориями слов
         private void UpdateWordCategories()
         {
             cmbWordCategory.Items.Clear();
@@ -319,7 +319,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обновление ListBox с словами текущей категории
+        // это для обновление ListBox с словами текущей категории
         private void UpdateWordListBox()
         {
             lstWords.Items.Clear();
@@ -336,7 +336,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обновление ComboBox с шаблонами
+        // это для бновление ComboBox с шаблонами
         private void UpdateTemplateComboBox()
         {
             cmbTemplates.Items.Clear();
@@ -350,7 +350,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обновление ListBox с шаблонами
+        // это для бновление ListBox с шаблонами
         private void UpdateTemplateListBox()
         {
             lstTemplates.Items.Clear();
@@ -360,7 +360,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обработчик кнопки "Сгенерировать"
+        // это обработчик кнопки сгенерировать
         private void BtnGenerate_Click(object sender, EventArgs e)
         {
             if (cmbTemplates.SelectedItem == null)
@@ -374,12 +374,12 @@ namespace SentenceGenerator
             txtGeneratedSentence.Text = generatedSentence;
         }
 
-        // Метод для генерации предложения
+        // это для генерации предложения
         private string GenerateSentence(string template)
         {
             StringBuilder generatedSentence = new StringBuilder(template);
 
-            // Поиск и замена переменных в шаблоне
+            // это нужно для поиска и замены переменных в шаблоне
             int startIndex = generatedSentence.ToString().IndexOf("{");
             while (startIndex != -1)
             {
@@ -395,7 +395,7 @@ namespace SentenceGenerator
                 }
                 else
                 {
-                    // Неправильный формат переменной
+                    // неправильный формат переменной
                     break;
                 }
             }
@@ -403,7 +403,7 @@ namespace SentenceGenerator
             return generatedSentence.ToString();
         }
 
-        // Метод для получения случайного слова по категории
+        //это нужно для получения случайного слова по категории
         private string GetRandomWordByCategory(string category)
         {
             if (wordDatabase.ContainsKey(category) && wordDatabase[category].Count > 0)
@@ -417,7 +417,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обработчик кнопки "Добавить шаблон"
+        // это обработчик кнопки "Добавить шаблон"
         private void BtnAddTemplate_Click(object sender, EventArgs e)
         {
             string newTemplate = txtNewTemplate.Text.Trim();
@@ -427,7 +427,7 @@ namespace SentenceGenerator
                 txtNewTemplate.Clear();
                 UpdateTemplateComboBox();
                 UpdateTemplateListBox();
-                SaveTemplates("templates.txt"); // Сохраняем шаблоны
+                SaveTemplates("templates.txt"); // сохраняем шаблоны
             }
             else
             {
@@ -435,7 +435,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обработчик кнопки "Редактировать шаблон"
+        // сдесь находится обработчик кнопки "Редактировать шаблон"
         private void BtnEditTemplate_Click(object sender, EventArgs e)
         {
             if (lstTemplates.SelectedItem != null)
@@ -448,7 +448,7 @@ namespace SentenceGenerator
                     txtNewTemplate.Clear();
                     UpdateTemplateComboBox();
                     UpdateTemplateListBox();
-                    SaveTemplates("templates.txt"); // Сохраняем шаблоны
+                    SaveTemplates("templates.txt"); // сохраняем шаблоны
                 }
                 else
                 {
@@ -461,7 +461,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обработчик кнопки "Удалить шаблон"
+        // это обработчик кнопки "Удалить шаблон"
         private void BtnDeleteTemplate_Click(object sender, EventArgs e)
         {
             if (lstTemplates.SelectedItem != null)
@@ -469,7 +469,7 @@ namespace SentenceGenerator
                 templates.RemoveAt(lstTemplates.SelectedIndex);
                 UpdateTemplateComboBox();
                 UpdateTemplateListBox();
-                SaveTemplates("templates.txt"); // Сохраняем шаблоны
+                SaveTemplates("templates.txt"); // тут у нас мы сохраняем шаблоны
             }
             else
             {
@@ -477,13 +477,13 @@ namespace SentenceGenerator
             }
         }
 
-        // Обработчик изменения выбранной категории слов
+        // здесь у меея бработчик изменения выбранной категории слов
         private void CmbWordCategory_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateWordListBox();
         }
 
-        // Обработчик кнопки "Добавить слово"
+        // а это бработчик кнопки Добавить слово
         private void BtnAddWord_Click(object sender, EventArgs e)
         {
             if (cmbWordCategory.SelectedItem == null)
@@ -502,11 +502,11 @@ namespace SentenceGenerator
                     wordDatabase[selectedCategory].Add(newWord);
                     txtNewWord.Clear();
                     UpdateWordListBox();
-                    SaveWordDatabase("words.txt"); // Сохраняем слова
+                    SaveWordDatabase("words.txt"); // тут охраняем слова
                 }
                 else
                 {
-                    // Если категория не существует, можно предложить создать ее
+                    // это нужно что бы Если категория не существует можно ее короче создать
                     MessageBox.Show("Категория '" + selectedCategory + "' не найдена.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -516,7 +516,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обработчик кнопки "Загрузить слова из файла"
+        // обработчик кнопки "Загрузить слова из файла"
         private void BtnLoadWords_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
@@ -531,7 +531,7 @@ namespace SentenceGenerator
             }
         }
 
-        // Обработчик события закрытия формы для сохранения данных
+        // тут у меня обработчик события закрытия формы для сохранения данных
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             SaveWordDatabase("words.txt");
